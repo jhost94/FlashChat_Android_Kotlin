@@ -1,5 +1,7 @@
-package com.jhost.flashchatnewfirebase;
+package com.jhost.flashchat;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
@@ -9,6 +11,11 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.AutoCompleteTextView;
 import android.widget.EditText;
 import android.widget.TextView;
+
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.UserProfileChangeRequest;
+import com.jhost.flashchat.service.ChatListAdapter;
 
 
 public class RegisterActivity extends AppCompatActivity {
@@ -25,7 +32,7 @@ public class RegisterActivity extends AppCompatActivity {
     private EditText mConfirmPasswordView;
 
     // Firebase instance variables
-
+    private FirebaseAuth auth;
 
 
     @Override
@@ -51,8 +58,7 @@ public class RegisterActivity extends AppCompatActivity {
         });
 
         // TODO: Get hold of an instance of FirebaseAuth
-
-
+        auth = FirebaseAuth.getInstance();
     }
 
     // Executed when Sign Up button is pressed.
@@ -61,7 +67,7 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     private void attemptRegistration() {
-
+        MainChatActivity.log("Attempting to register");
         // Reset errors displayed in the form.
         mEmailView.setError(null);
         mPasswordView.setError(null);
@@ -97,25 +103,59 @@ public class RegisterActivity extends AppCompatActivity {
             focusView.requestFocus();
         } else {
             // TODO: Call create FirebaseUser() here
-
+            createFirebaseUser();
         }
     }
 
     private boolean isEmailValid(String email) {
         // You can add more checking logic here.
-        return email.contains("@");
+        return email.contains("@") && email.contains(".") && email.length() > 5;
     }
 
     private boolean isPasswordValid(String password) {
         //TODO: Add own logic to check for a valid password (minimum 6 characters)
-        return true;
+        return password.length() > 5 && password.equals(this.mConfirmPasswordView.getText().toString());
     }
 
     // TODO: Create a Firebase user
+    private void createFirebaseUser(){
+        MainChatActivity.log("Attempting to create firebase user");
 
+        String email = mEmailView.getText().toString();
+        String password = mPasswordView.getText().toString();
+
+        auth.createUserWithEmailAndPassword(email, password).addOnCompleteListener(task -> {
+            MainChatActivity.log(task.isSuccessful() ? "Registration complete" : "Registration failed");
+             if (!task.isSuccessful()) {
+                 // do smg
+             } else {
+                 saveDisplayName();
+                 Intent intent = new Intent(RegisterActivity.this, LoginActivity.class);
+                 finish();
+                 startActivity(intent);
+             }
+        });
+    }
 
     // TODO: Save the display name to Shared Preferences
+    private void saveDisplayName(){
+        FirebaseUser user = auth.getCurrentUser();
+        String name = mUsernameView.getText().toString();
 
+        if (user != null) {
+            UserProfileChangeRequest profileChangeRequest = new UserProfileChangeRequest.Builder()
+                    .setDisplayName(name)
+                    .build();
+
+            user.updateProfile(profileChangeRequest)
+                    .addOnCompleteListener(task -> {
+                        MainChatActivity.log(task.isSuccessful() ? "Update completed" : "Something went wrong");
+                    });
+        }
+
+        SharedPreferences fName = getSharedPreferences(CHAT_PREFS, 0);
+        fName.edit().putString(DISPLAY_NAME_KEY, name).apply();
+    }
 
     // TODO: Create an alert dialog to show in case registration failed
 
