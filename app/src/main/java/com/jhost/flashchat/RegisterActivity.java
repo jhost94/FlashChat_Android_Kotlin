@@ -127,7 +127,7 @@ public class RegisterActivity extends AppCompatActivity {
         auth.createUserWithEmailAndPassword(email, password).addOnCompleteListener(task -> {
             MainChatActivity.log(task.isSuccessful() ? "Registration complete" : "Registration failed");
              if (!task.isSuccessful()) {
-                 // do smg
+                 MainChatActivity.log("");
              } else {
                  saveDisplayName();
                  Intent intent = new Intent(RegisterActivity.this, LoginActivity.class);
